@@ -75,7 +75,7 @@
   <div id="status" class="empty">
   </div>
 
-    <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+    <script type="text/javascript" src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
     <script type="text/javascript">
 
       var reload_time = 0;
@@ -89,6 +89,8 @@
         var if2 = document.getElementById("if2");
         var current = if2;
         var candidate = if1;
+
+        var namespace = 'urn:x-cast:com.madmod.dashcast';
 
         main.classList.add("show");
 
@@ -137,30 +139,27 @@
           window.setTimeout(function() { window.location = url; }, 1000);
         }
 
-        cast.receiver.logger.setLevelValue(0);
-        window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
-        castReceiverManager.onReady = function(event) {
-          window.castReceiverManager.setApplicationState("Application ready");
+        window.castReceiverContext = cast.framework.CastReceiverContext.getInstance();
+        window.castReceiverContext.setLoggerLevel(cast.framework.LoggerLevel.DEBUG);
+        castReceiverContext.onReady = function(event) {
+          window.castReceiverContext.setApplicationState("Application ready");
           setStatus("Waiting for address")
         };
 
-        // create a CastMessageBus to handle messages for a custom namespace
-        window.messageBus = window.castReceiverManager.getCastMessageBus('urn:x-cast:com.madmod.dashcast');
-
         // handler for the CastMessageBus message event
-        window.messageBus.onMessage = function(event) {
-          var msg = JSON.parse(event.data);
+        window.castReceiverContext.addCustomMessageListener(namespace, function(event) {
+          var msg = event.data;
           if (msg.force) {
             return loadPage(msg.url);
           }
           loadFrame(msg.url, (msg.reload) ? parseInt(msg.reload_time, 10) : 0);
           // inform all senders on the CastMessageBus of the incoming message event
           // sender message listener will be invoked
-          window.messageBus.send(event.senderId, event.data);
-        }
+          window.castReceiverContext.sendCustomMessage(namespace, event.senderId, event.data);
+        });
 
-        // initialize the CastReceiverManager with an application status message
-        window.castReceiverManager.start({statusText: "Application is starting"});
+        // initialize the CastReceiverContext with an application status message
+        window.castReceiverContext.start({statusText: "Application is starting"});
       };
 
     </script>
